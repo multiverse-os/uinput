@@ -4,23 +4,49 @@ package uinput
 const (
 	uinputPath          = "/dev/uinput"
 	maxDeviceNameLength = 80
-	newUIDevice         = 0x5501
-	removeUIDevice      = 0x5502
-	setEventBit         = 0x40045564
-	setKeyBit           = 0x40045565
-	setRelativeBit      = 0x40045566
-	setAbsoluteBit      = 0x40045567
-	USB                 = 0x03
-	relativeX           = 0x0
-	relativeY           = 0x1
-	absoluteX           = 0x0
-	absoluteY           = 0x1
-	syncReport          = 0 // (SYNchronize/separate input events occuring at the same time)
-	leftButtonEvent     = 0x110
-	rightButtonEvent    = 0x111
-	buttonReleased      = 0
-	buttonPressed       = 1
-	size                = 64
+
+	USB = 0x03
+
+	CreateUIDevice = 0x5501
+	RemoveUIDevice = 0x5502
+
+	setUIEventBit    = 0x40045564
+	setUIKeyBit      = 0x40045565
+	setUIRelativeBit = 0x40045566
+	setUIAbsoluteBit = 0x40045567
+
+	// TODO: since these are the same, cant we just work with X and Y?
+	relativeX = 0x0
+	relativeY = 0x1
+	absoluteX = 0x0
+	absoluteY = 0x1
+
+	syncReport       = 0 // (SYNchronize/separate input events occuring at the same time)
+	leftButtonEvent  = 0x110
+	rightButtonEvent = 0x111
+	buttonReleased   = 0
+	buttonPressed    = 1
+	size             = 64
+)
+
+// Buttons
+// TODO: Move into own file and type, probably pointer
+//ButtonDefaults = (BTN_LEFT, BTN_RIGHT, BTN_MIDDLE, BTN_SIDE, BTN_EXTRA,
+//BTN_FORWARD, BTN_BACK, BTN_TASK)
+const (
+	mouse1, leftButton   = 0x110
+	mouse2, rightButton  = 0x111
+	mouse3, middleButton = 0x112
+	mouse4, sideButton   = 0x113
+	extraButton          = 0x114
+	forwardButton        = 0x115
+	backButton           = 0x116
+	taskButton           = 0x117
+	touchBUtton          = 0x14a
+	penToolButton        = 0x140
+	fingerButton         = 0x145
+	toolButton           = 0x146
+	stylusButton         = 0x14b
 )
 
 // input event codes as specified in input-event-codes.h

@@ -3,81 +3,60 @@ package uinput
 import (
 	"fmt"
 	"os"
+
+	keycode "github.com/multiverse-os/vinput/libs/uinput/keycode"
 )
 
-type VirtualKeyboard interface {
-	Disconnect() error
-	PressKey(key int) error
-	KeyDown(key int) error
-	KeyUp(key int) error
+// TODO: We need to have toggle status for the keys which are toggled like
+// numlock and capslock. Additionally it would be worth tracking all the keys
+// which are pressed, probably using a map
+// Add TypeString - support UTF8
+// Add PressMultipleKeys ReleaseMultiKeys
+// Add MultipleKeys
+// Be able to se Multple keys to keywords using a map that stores common combos
+// and has a bunch of common ones by default but can have more added:
+// CTRL+ALT+DELETE and ALT+TAB and CTRL+C etc
+// TODO: Have some default keymaps, as in with keypad without keypad, etc
+type VirtualKeyboard struct {
+	CapsLockToggle bool
 }
 
-// TODO: Keyboard, Mouse and Touchpad could all have a single initializaiton
-// function using a type declaration for each accepted device, then we woudnt be
-// essentailly repeating the exact same code for each device. We already reduced
-// the amount of repeated code by simplifying things but we could bring it down
-// to 1 function easily.
-
-func (self Keyboard) PressKey(key int) error {
-	if !keyCodeInRange(key) {
-		return fmt.Errorf("[error] failed to perform PressKey. Code %d is not in range", key)
+func IsValidKeyCode(key keycode.KeyCode) error {
+	if !keycode.IsValidKeyCode(key) {
+		return fmt.Errorf("[error] failed to perform interact with virtual keyboard. Code %d is not in range", key)
 	}
-	if err := sendButtonEvent(self.deviceFD, key, buttonPressed); err != nil {
+	return nil
+}
+
+func (self Device) Tap(key keycode.KeyCode) error {
+	if err := IsValidKeyCode(key); err != nil {
+		return err
+	}
+	if err := self.PressKey(key); err != nil {
+		return err
+	}
+	if err := self.ReleaseKey(key); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self Device) PressKey(key keycode.KeyCode) error {
+	if err := IsValidKeyCode(key); err != nil {
+		return err
+	}
+	if err := sendButtonEvent(self.deviceFD, int(key), buttonPressed); err != nil {
 		return fmt.Errorf("[error] failed to issue the KeyDown event: %v", err)
 	}
-	if err := sendButtonEvent(self.deviceFD, key, buttonReleased); err != nil {
+	return syncEvents(self.deviceFD)
+}
+
+func (self Device) ReleaseKey(key keycode.KeyCode) error {
+	if err := IsValidKeyCode(key); err != nil {
+		return err
+	}
+	if err := sendButtonEvent(self.deviceFD, int(key), buttonReleased); err != nil {
 		return fmt.Errorf("[error] failed to issue the KeyUp event: %v", err)
 	}
 	return syncEvents(self.deviceFD)
-}
-
-func (self Keyboard) KeyDown(key int) error {
-	if !keyCodeInRange(key) {
-		return fmt.Errorf("[error] failed to perform KeyDown. Code %d is not in range", key)
-	}
-	if err := sendButtonEvent(self.deviceFD, key, buttonPressed); err != nil {
-		return fmt.Errorf("[error] failed to issue the KeyDown event: %v", err)
-	}
-	return syncEvents(self.deviceFD)
-}
-
-func (self Keyboard) KeyUp(key int) error {
-	if !keyCodeInRange(key) {
-		return fmt.Errorf("[error] failed to perform KeyUp. Code %d is not in range", key)
-	}
-	if err := sendButtonEvent(self.deviceFD, key, buttonReleased); err != nil {
-		return fmt.Errorf("[error] failed to issue the KeyUp event: %v", err)
-	}
-	return syncEvents(self.deviceFD)
-}
-
-func (self Keyboard) Disconnect() error {
-	return removeDevice(self.deviceFD)
-}
-
-func newKeyboardDevice(name []byte) (fd *os.File, err error) {
-	if deviceFD, err := newDeviceFD(); err != nil {
-		return nil, fmt.Errorf("[error] failed to create new virtual keyboard device: %v", err)
-	} else {
-		if err = registerDevice(deviceFD, uintptr(keyEvent)); err != nil {
-			deviceFD.Close()
-			return nil, fmt.Errorf("[error] failed to register virtual keyboard device: %v", err)
-		}
-		for i := 0; i < int(keyMax); i++ {
-			if err = ioctl(deviceFD, setKeyBit, uintptr(i)); err != nil {
-				deviceFD.Close()
-				return nil, fmt.Errorf("[error] failed to register key number %d: %v", i, err)
-			}
-		}
-		return newUSBDevice(deviceFD,
-			uinputDevice{
-				Name: uinputDeviceName(name),
-				ID: uinputID{
-					BusType: USB,
-					Vendor:  0x4711,
-					Product: 0x0815,
-					Version: 1,
-				},
-			})
-	}
 }
