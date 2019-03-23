@@ -4,35 +4,39 @@ package uinput
 type SwitchState int
 
 const (
-	InvalidState SwitchState = iota
+	Released SwitchState = iota
 	Pressed
-	Released
 )
 
 // Alias
 const (
-	Down = Pressed
-	Up   = Released
+	On  = Pressed
+	Off = Released
 )
+
+func (self SwitchState) EventCode() int {
+	switch self {
+	case Pressed:
+		return 1
+	default: //case Released:
+		return 0
+	}
+}
 
 func (self SwitchState) String() string {
 	switch self {
 	case Pressed:
 		return "pressed"
-	case Released:
+	default: //case Released:
 		return "released"
-	default: // InvalidState
-		return "invalid"
 	}
 }
 
 func MarshallSwitchState(state string) SwitchState {
 	switch state {
-	case Pressed.String(), "down":
-		Pressed
-	case Released.String(), "up":
-		Released
-	default:
-		return InvalidState
+	case Pressed.String(), "on":
+		return Pressed
+	default: //case Released.String(), "off":
+		return Released
 	}
 }

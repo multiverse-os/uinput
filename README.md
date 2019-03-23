@@ -1,34 +1,29 @@
 <img src="https://avatars2.githubusercontent.com/u/24763891?s=400&u=c1150e7da5667f47159d433d8e49dad99a364f5f&v=4"  width="256px" height="256px" align="right" alt="Multiverse OS Logo">
 
-## Multiverse: Uinput Library; providing access to uinput and evdev Linux subsystems
+## Multiverse OS: `uinput` library
 **URL** [multiverse-os.org](https://multiverse-os.org)
 
+The Linux `uinput` subsystem provides low-level access to the Kernel for the
+purposes of creating and manipulating virtual devices. This library is a 
+subcomponent of the Multiverse OS Go language library `vinput`, which provides
+and abstraction layer ontop of the `uinput` subsystem. This abstraction layer 
+is specifically designed to simplfiy creation of virtual devices for the 
+purposes of user input automation. 
 
-A component of the `portal-gun` ephemeral virtual machine management system.
-Providing Multiverse OS developers reproducible build environments, and the
-foundation for Multiverse OS compartmentalization based security protocol.
+This library simply focuses on interaction with the `uinput` subsystem and 
+provides very little abstraction over the exsiting protocol and ideally is 
+designed so that it can be used by a wide range of applications beyond our 
+use in `vinput`.
 
-**TODO:** Emulate/Model the virtual keyboard in a more realistic way; such as,
-add a boolean to track <capslock>, <numlock>, and status of other similar
-toggle keys.
+### Usage
+Initialization of a uinput device is done using a function chain used to 
+modify defaults. 
 
-**TODO:** Support simple multi-key pressing
+```
+  // Simpliest initialization
+  kbd := Keyboard.New("device-name") 
 
-**TODO:** Support Unicode
+```
 
-**TODO:** Support simpler API allowing TypeString("string to type")...
-
-**TODO:** Support macro definition, as one could with a more advanced
-keyboard
-
-**TODO:** Begin to sketch out some of the additional hardware functionality in
-the Multiverse open source hardware HID spec.
-
-Keep logic in uinput releated to uninput, logic that abstracts and keeps track
-of window/process being interacted with, should be at the higher level of
-virtual.
-
-**TODO:** Instead of taking in Int perhaps take in KeyCode type
-
-
-
+(Provide more details as progress continues on vinput which will can be used as
+example code and general usage examples) 

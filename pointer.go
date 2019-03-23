@@ -2,9 +2,11 @@ package uinput
 
 import (
 	"fmt"
-	"os"
 	"syscall"
 )
+
+// Buttons
+// TODO: Move into own file and type, probably pointer
 
 type MoveDirection int
 
@@ -19,12 +21,19 @@ type ButtonType int
 
 // TODO: Have a method to output the byte info
 const (
-	RightButton ButtonType = iota
+	LeftButton ButtonType = iota
+	RightButton
 	MiddleButton
-	LeftButton
-	Mouse4
-	Mouse5
-	Mouse6
+	SideButton
+	ExtraButton
+	ForwardButton
+	BackButton
+	TaskButton
+	TouchButton
+	PenToolButton
+	FingerButton
+	ToolButton
+	StylusButton
 )
 
 // Alias
@@ -32,14 +41,87 @@ const (
 	Mouse1 = LeftButton
 	Mouse2 = RightButton
 	Mouse3 = MiddleButton
+	Mouse4 = SideButton
+	Mouse5 = ExtraButton
+	Mouse6 = ForwardButton
+	Mouse7 = BackButton
+	Mouse8 = TaskButton
 )
 
+func (self ButtonType) EventCode() int {
+	switch self {
+	case LeftButton:
+		return 0x110
+	case RightButton:
+		return 0x111
+	case MiddleButton:
+		return 0x112
+	case SideButton:
+		return 0x113
+	case ExtraButton:
+		return 0x114
+	case ForwardButton:
+		return 0x115
+	case BackButton:
+		return 0x116
+	case TaskButton:
+		return 0x117
+	case TouchButton:
+		return 0x14a
+	case PenToolButton:
+		return 0x140
+	case FingerButton:
+		return 0x145
+	case ToolButton:
+		return 0x146
+	case StylusButton:
+		return 0x14b
+	default:
+		return 0
+	}
+}
+
+func (self ButtonType) String() string {
+	switch self {
+	case LeftButton:
+		return "left button"
+	case RightButton:
+		return "right button"
+	case MiddleButton:
+		return "middle button"
+	case ExtraButton:
+		return "extra button"
+	case ForwardButton:
+		return "forward button"
+	case BackButton:
+		return "back button"
+	case TaskButton:
+		return "task button"
+	default:
+		return ""
+	}
+}
+
+// NOTE: In input-event-codes.h in the kernel a variable is declared for
+// rel_x,rel_y and abs_x,abs_y but they are the same value, so we will
+// just use a single x and y to simplify things.
 type AxisType int
 
 const (
-	YAxis AxisType = iota
-	XAxis
+	XAxis AxisType = iota
+	YAxis
 )
+
+func (self AxisType) EventCode() int {
+	switch self {
+	case XAxis:
+		return 0x00
+	case YAxis:
+		return 0x01
+	default:
+		return 0
+	}
+}
 
 type MoveType int
 
@@ -56,7 +138,7 @@ type MoveEvent struct {
 	NewPosition position
 }
 
-func (self MoveEvent) UInputEvent() (event uinputEvent) {
+func (self MoveEvent) UInputEvent() (event UInputEvent) {
 	if self.Type == AbsoluteMove {
 		event.Type = absoluteEvent
 		if self.Axis == XAxis {
@@ -92,7 +174,7 @@ func (self position) Slice() (absolute [size]int32) {
 }
 
 // TODO: Make a struct to hold this data and a func that outputs it in this way
-func (self position) AbsoluteMoveEvents() (events [2]uinputEvent) {
+func (self position) AbsoluteMoveEvents() (events [2]UInputEvent) {
 	events[0].Type = absoluteEvent
 	events[0].Code = absoluteX
 	events[0].Value = self.X
@@ -103,7 +185,7 @@ func (self position) AbsoluteMoveEvents() (events [2]uinputEvent) {
 	return events
 }
 
-func (self position) RelativeMoveEvents() (events [2]uinputEvent) {
+func (self position) RelativeMoveEvents() (events [2]UInputEvent) {
 	events[0].Type = relativeEvent
 	events[0].Code = relativeX
 	events[0].Value = self.X
@@ -129,108 +211,26 @@ func (self position) RelativeMoveEvents() (events [2]uinputEvent) {
 // movementEvent (relative or absolute), yAxisEvent (relative or absolute),
 // xAxisEvent (relative or absolute)]
 
-func newMouse(name [maxDeviceNameLength]byte) (fd *os.File, err error) {
-	deviceFD, err := newDeviceFD()
-	if err != nil {
-		return nil, fmt.Errorf("[error] could not create new relative axis input device: %v", err)
-	}
-	if err = registerDevice(deviceFD, uintptr(keyEvent)); err != nil {
-		deviceFD.Close()
-		return nil, fmt.Errorf("[error] failed to register key device: %v", err)
-	}
-	if err = ioctl(deviceFD, setRelativeBit, uintptr(leftButtonEvent)); err != nil {
-		deviceFD.Close()
-		return nil, fmt.Errorf("[error] failed to register left click event: %v", err)
-	}
-	if err = ioctl(deviceFD, setRelativeBit, uintptr(rightButtonEvent)); err != nil {
-		deviceFD.Close()
-		return nil, fmt.Errorf("[error] failed to register right click event: %v", err)
-	}
-	if err = registerDevice(deviceFD, uintptr(relativeEvent)); err != nil {
-		deviceFD.Close()
-		return nil, fmt.Errorf("[error] failed to register relative axis input device: %v", err)
-	}
-	if err = ioctl(deviceFD, setRelativeBit, uintptr(relativeX)); err != nil {
-		deviceFD.Close()
-		return nil, fmt.Errorf("[error] failed to register relative x axis events: %v", err)
-	}
-	if err = ioctl(deviceFD, setRelativeBit, uintptr(relativeY)); err != nil {
-		deviceFD.Close()
-		return nil, fmt.Errorf("[error] failed to register relative y axis events: %v", err)
-	}
-	return newUSBDevice(deviceFD,
-		uinputDevice{
-			Name: uinputDeviceName(name),
-			ID: uinputID{
-				BusType: USB,
-				Vendor:  0x4711,
-				Product: 0x0816,
-				Version: 1,
-			},
-		})
-}
-
 // TODO: we should be merging coordinates (x,y) into a single object
-func newTouchPad(name [maxDeviceNameLength]byte) (fd *os.File, err error) {
-	if deviceFD, err := newDeviceFD(); err != nil {
-		return nil, fmt.Errorf("[error] could not create new absolute axis input device: %v", err)
-	} else {
-		if err = registerDevice(deviceFD, uintptr(keyEvent)); err != nil {
-			deviceFD.Close()
-			return nil, fmt.Errorf("[error] failed to register key device: %v", err)
-		}
-		if err = ioctl(deviceFD, setKeyBit, uintptr(leftButtonEvent)); err != nil {
-			deviceFD.Close()
-			return nil, fmt.Errorf("[error] failed to register left click event: %v", err)
-		}
-		if err = ioctl(deviceFD, setKeyBit, uintptr(rightButtonEvent)); err != nil {
-			deviceFD.Close()
-			return nil, fmt.Errorf("[error] failed to register right click event: %v", err)
-		}
-		if err = registerDevice(deviceFD, uintptr(absoluteEvent)); err != nil {
-			deviceFD.Close()
-			return nil, fmt.Errorf("[error] failed to register absolute axis input device: %v", err)
-		}
-		if err = ioctl(deviceFD, setAbsoluteBit, uintptr(absoluteX)); err != nil {
-			deviceFD.Close()
-			return nil, fmt.Errorf("[error] failed to register absolute x axis events: %v", err)
-		}
-		if err = ioctl(deviceFD, setAbsoluteBit, uintptr(absoluteY)); err != nil {
-			deviceFD.Close()
-			return nil, fmt.Errorf("[error] failed to register absolute y axis events: %v", err)
-		}
-		return newUSBDevice(deviceFD,
-			uinputDevice{
-				Name: uinputDeviceName(name),
-				ID: uinputID{
-					BusType: USB,
-					Vendor:  0x4711,
-					Product: 0x0817,
-					Version: 1,
-				},
-				//Min: min.Slice(),
-				//Max: max.Slice(),
-			})
-	}
-}
 
 func (self Device) AbsoluteMoveTo(newPosition position) error {
-	uinputEvents := newPosition.MoveEvents()
+	uinputEvents := newPosition.AbsoluteMoveEvents()
 	for _, event := range uinputEvents {
 		if eventBuffer, err := writeToEventBuffer(event); err != nil {
 			return fmt.Errorf("[error] writing abs event failed: %v", err)
-			if _, err = deviceFD.Write(eventBuffer); err != nil {
+			if _, err = self.FD.Write(eventBuffer); err != nil {
 				return fmt.Errorf("[error] failed to write abs event to device file: %v", err)
 			}
 		}
 	}
-	return syncEvents(deviceFD)
+	return syncEvents(self.FD)
 }
 
 // TODO: Why do we need event code? Shouldnt it be fixed? And pixel seems wierd
 // name for distance to move relative
-func (self Device) RelativeMoveTo(deviceFD *os.File, eventCode uint16, pixels int32) error {
-	uinputEvent := uinputEvent{
+
+func (self Device) RelativeMoveTo(eventCode uint16, pixels int32) error {
+	uinputEvent := UInputEvent{
 		Time:  syscall.Timeval{Sec: 0, Usec: 0},
 		Type:  relativeEvent,
 		Code:  eventCode,
@@ -238,74 +238,51 @@ func (self Device) RelativeMoveTo(deviceFD *os.File, eventCode uint16, pixels in
 	}
 	if eventBuffer, err := writeToEventBuffer(uinputEvent); err != nil {
 		return fmt.Errorf("[error] writing abs event failed: %v", err)
-		if _, err = deviceFD.Write(eventBuffer); err != nil {
+		if _, err = self.FD.Write(eventBuffer); err != nil {
 			return fmt.Errorf("[error] failed to write rel event to device file: %v", err)
 		}
 	}
-	return syncEvents(deviceFD)
+	return syncEvents(self.FD)
 }
 
+// TODO: Break these out into RelativeMoveLeft(pixels) to greatly simplify
+// interaction with a given device. Then probably horizontal and vertical
+// be broken off too.
 func (self Device) Move(direction MoveDirection, pixels int32) error {
 	switch direction {
 	case Up:
-		return sendRelativeEvent(self.deviceFD, relativeY, -pixels)
+		return self.RelativeMoveTo(relativeY, -pixels)
 	case Down:
-		return sendRelativeEvent(self.deviceFD, relativeY, pixels)
+		return self.RelativeMoveTo(relativeY, pixels)
 	case Left:
-		return sendRelativeEvent(self.deviceFD, relativeX, -pixels)
+		return self.RelativeMoveTo(relativeX, -pixels)
 	case Right:
-		return sendRelativeEvent(self.deviceFD, relativeX, pixels)
+		return self.RelativeMoveTo(relativeX, pixels)
 	default:
 		return fmt.Errorf("[error] invalid direction")
 	}
 }
 
 func (self Device) Click(buttonType ButtonType) error {
-	switch buttonType {
-	case LeftButton:
-		if err := self.PressLeftButton(); err != nil {
-			return err
-		}
-		if err := self.ReleaseLeftButton(); err != nil {
-			return err
-		}
-	case RightButton:
-		if err := self.PressRightButton(); err != nil {
-			return err
-		}
-		if err := self.ReleaseRightButton(); err != nil {
-			return err
-		}
+	if err := self.PressButton(buttonType); err != nil {
+		return err
+	}
+	if err := self.ReleaseButton(buttonType); err != nil {
+		return err
 	}
 	return nil
 }
 
-// TODO: These can be merged into a single one then we keep pressbutton and
-// releasebutton but just have it call the new merged function
 func (self Device) PressButton(buttonType ButtonType) error {
-	switch buttonType {
-	case LeftButton:
-		if err := sendButtonEvent(self.deviceFD, leftButtonEvent, buttonPressed); err != nil {
-			return fmt.Errorf("[error] failed press the left mouse button: %v", err)
-		}
-	case RightButton:
-		if err := sendButtonEvent(self.deviceFD, rightButtonEvent, buttonPressed); err != nil {
-			return fmt.Errorf("[error] failed press the right mouse button: %v", err)
-		}
+	if err := sendButtonEvent(self.FD, buttonType.EventCode(), buttonPressed); err != nil {
+		return fmt.Errorf("[error] failed press the left mouse button: %v", err)
 	}
-	return syncEvents(self.deviceFD)
+	return syncEvents(self.FD)
 }
 
 func (self Device) ReleaseButton(buttonType ButtonType) error {
-	switch buttonType {
-	case LeftButton:
-		if err := sendButtonEvent(self.deviceFD, leftButtonEvent, buttonReleased); err != nil {
-			return fmt.Errorf("[error] failed press the left mouse button: %v", err)
-		}
-	case RightButton:
-		if err := sendButtonEvent(self.deviceFD, rightButtonEvent, buttonReleased); err != nil {
-			return fmt.Errorf("[error] failed press the right mouse button: %v", err)
-		}
+	if err := sendButtonEvent(self.FD, buttonType.EventCode(), buttonReleased); err != nil {
+		return fmt.Errorf("[error] failed press the left mouse button: %v", err)
 	}
-	return syncEvents(self.deviceFD)
+	return syncEvents(self.FD)
 }
