@@ -1,14 +1,15 @@
 package uinput
 
+type SwitchMap map[int]SwitchState
+
 // Button or Key
-type SwitchState int
+type SwitchState bool
 
 const (
-	Released SwitchState = iota
-	Pressed
+	Released SwitchState = true
+	Pressed  SwitchState = false
 )
 
-// Alias
 const (
 	On  = Pressed
 	Off = Released
@@ -29,14 +30,5 @@ func (self SwitchState) String() string {
 		return "pressed"
 	default: //case Released:
 		return "released"
-	}
-}
-
-func MarshallSwitchState(state string) SwitchState {
-	switch state {
-	case Pressed.String(), "on":
-		return Pressed
-	default: //case Released.String(), "off":
-		return Released
 	}
 }

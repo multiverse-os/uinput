@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-const MaxKeyCode = 248
-
 // runeKeyCodes contains runes that can be typed with a single key
 // (in the default QWERTY layout).
 var runeKeyCodes = map[rune]EventCode{
