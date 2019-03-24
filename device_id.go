@@ -5,13 +5,25 @@ type deviceID struct{ busType, vendor, product, version uint16 }
 func NewDeviceID(deviceType DeviceType) deviceID {
 	switch deviceType {
 	case Keyboard:
-		return deviceID{}
+		return deviceID{
+			busType: USB.Code(),
+			vendor:  0x4711,
+			product: 0x0815,
+			version: 1,
+		}
 	case Mouse:
-		return deviceID{}
+		return deviceID{
+			busType: USB.Code(),
+			vendor:  0x4711,
+			product: 0x0816,
+			version: 1,
+		}
 	case TouchPad:
 		return deviceID{
+			busType: USB.Code(),
 			vendor:  0x4711,
 			product: 0x0817,
+			version: 1,
 		}
 	}
 }

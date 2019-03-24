@@ -5,11 +5,8 @@ type DeviceProperty uint16
 // REF:
 // https://github.com/torvalds/linux/blob/master/include/uapi/linux/uinput.h
 const (
-	syncReport = 0 // (SYNchronize/separate input events occuring at the same time)
-	size       = 64
-
+	size        = 64
 	uinputEvent = 0x0101
-
 	// TODO: Consolidate the forcebeedback logic so it easier interfaces can be
 	// created ontop of it
 	uinputForceFeedbackUpload = 1
@@ -46,4 +43,8 @@ func (self SyncType) Code() uint16 {
 	default:
 		return 0
 	}
+}
+
+func (self SyncType) Int32() int32 {
+	return int32(self.Code())
 }

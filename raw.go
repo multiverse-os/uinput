@@ -20,7 +20,7 @@ type RawEventWriter struct {
 }
 
 // Device returns a RawEventWriter for injecting input events into the input event device at path.
-func Device(ctx context.Context, path string) (*RawEventWriter, error) {
+func RawDevice(ctx context.Context, path string) (*RawEventWriter, error) {
 	f, err := os.OpenFile(path, os.O_WRONLY, 0600)
 	if err != nil {
 		return nil, err

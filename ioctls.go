@@ -1,5 +1,13 @@
 package uinput
 
+// Original function taken from: https://github.com/tianon/debian-golang-pty/blob/master/ioctl.go
+func ioctl(deviceFD *os.File, cmd, ptr uintptr) error {
+	if _, _, errorCode := syscall.Syscall(syscall.SYS_IOCTL, deviceFD.Fd(), cmd, ptr); errorCode != 0 {
+		return errorCode
+	}
+	return nil
+}
+
 const (
 	uinputPath = "/dev/uinput"
 	vinputPath = "/sys/devices/virtual/input"
@@ -43,8 +51,7 @@ const (
 
 // Aliasing to Go style standards
 const (
-	ioctlBase = UINPUT_IOCTL_BASE
-
+	ioctlBase           = UINPUT_IOCTL_BASE
 	uinputVersion       = UINPUT_VERSION
 	maxDeviceNameLength = UINPUT_MAX_NAME_SIZE
 )
@@ -84,9 +91,13 @@ const (
 	RemoveDevice     = UI_DEV_DESTROY
 	DestroyDevice    = UI_DEV_DESTROY
 	RegisterKey      = UI_SET_KEYBIT
+	KeyBit           = UI_SET_KEYBIT
 	Event            = UI_SET_EVBIT
+	EventBit         = UI_SET_EVBIT
 	RelativeMovement = UI_SET_RELBIT
+	RelativeBit      = UI_SET_RELBIT
 	AbsoluteMovement = UI_SET_ABSBIT
+	AbsoluteBit      = UI_SET_ABSBIT
 )
 
 func (self ioctlType) ID() int {
@@ -134,12 +145,16 @@ func (self ioctlType) ID() int {
 	}
 }
 
-func (self ioctlType) Code() int {
+func (self ioctlType) UIntPointer() uintptr {
 	switch self {
 	case UI_DEV_CREATE:
 		return 0x5501
 	case UI_DEV_DESTROY:
 		return 0x5502
+	case UI_DEV_SETUP:
+		return 0x405c5503
+	case UI_ABS_SETUP:
+		return 0x401c5504
 	case UI_SET_EVBIT:
 		return 0x40045564
 	case UI_SET_KEYBIT:
@@ -148,7 +163,25 @@ func (self ioctlType) Code() int {
 		return 0x40045566
 	case UI_SET_ABSBIT:
 		return 0x40045567
+	case UI_SET_MSCBIT:
+		return 0x40045568
+	case UI_SET_LEDBIT:
+		return 0x40045569
+	case UI_SET_SNDBIT:
+		return 0x4004556a
+	case UI_SET_FFBIT:
+		return 0x4004556b
+	case UI_SET_PHYS:
+		return 0x4004556c
+	case UI_SET_SWBIT:
+		return 0x4004556d
+	case UI_SET_PROPBIT:
+		return 0x4004556e
 	default:
 		return 0
 	}
+}
+
+func (self ioctlType) Code() uintptr {
+	return self.UIntPointer()
 }
