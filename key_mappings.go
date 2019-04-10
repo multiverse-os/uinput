@@ -9,10 +9,10 @@ func DefaultKeymap() (keymap []EventCode) {
 	for _, value := range runeKeyCodes {
 		keymap = append(keymap, value)
 	}
-	for _, value = range shiftedRuneKeyCodes {
+	for _, value := range shiftedRuneKeyCodes {
 		keymap = append(keymap, value)
 	}
-	for _, value = range namedKeyCodes {
+	for _, value := range namedKeyCodes {
 		keymap = append(keymap, value)
 	}
 	return keymap

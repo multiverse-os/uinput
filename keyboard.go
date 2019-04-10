@@ -4,6 +4,15 @@ import (
 	"fmt"
 )
 
+type VirtualKeyboard struct {
+	ToggleStatus map[ToggleKey]bool
+	KeyMap       map[EventCode]bool
+}
+
+func NewKeyboard(name string) (VirtualDevice, error) {
+	return Keyboard.New()
+}
+
 type ToggleKey int
 
 const (
@@ -12,11 +21,6 @@ const (
 	ScrollLock
 	Insert
 )
-
-type VirtualKeyboard struct {
-	ToggleStatus map[ToggleKey]bool
-	KeyMap       map[EventCode]bool
-}
 
 func (self Device) Tap(key EventCode) error {
 	if err := self.PressKey(key); err != nil {
@@ -29,15 +33,15 @@ func (self Device) Tap(key EventCode) error {
 }
 
 func (self Device) PressKey(key EventCode) error {
-	if err := sendButtonEvent(self.FD, int(key), buttonPressed); err != nil {
+	if err := sendButtonEvent(self.FD, int(key), KeyPressed.Code()); err != nil {
 		return fmt.Errorf("[error] failed to issue the KeyDown event: %v", err)
 	}
-	return syncEvents(self.FD)
+	return self.SyncEvents()
 }
 
 func (self Device) ReleaseKey(key EventCode) error {
-	if err := sendButtonEvent(self.FD, int(key), buttonReleased); err != nil {
+	if err := sendButtonEvent(self.FD, int(key), KeyReleased.Code()); err != nil {
 		return fmt.Errorf("[error] failed to issue the KeyUp event: %v", err)
 	}
-	return syncEvents(self.FD)
+	return self.SyncEvents()
 }

@@ -1,6 +1,10 @@
 package uinput
 
 import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+	"os"
 	"syscall"
 )
 
@@ -13,11 +17,11 @@ type InputEvent struct {
 }
 
 func (self Device) SyncEvents() error {
-	if eventBuffer, err := appendEvent(DeviceEvent{
+	if eventBuffer, err := appendEvent(InputEvent{
 		Time:  syscall.Timeval{Sec: 0, Usec: 0},
-		Type:  syncEvent.UInt16(),
+		Type:  evSync.UInt16(),
 		Code:  0,
-		Value: syncReport.Int32(),
+		Value: ReportSync.Int32(),
 	}); err != nil {
 		return fmt.Errorf("[error] writing sync event failed: %v", err)
 	} else {
@@ -28,7 +32,7 @@ func (self Device) SyncEvents() error {
 	return nil
 }
 
-func appendEvent(event DeviceEvent) (buffer []byte, err error) {
+func appendEvent(event InputEvent) (buffer []byte, err error) {
 	eventBuffer := new(bytes.Buffer)
 	if err = binary.Write(eventBuffer, binary.LittleEndian, event); err != nil {
 		return nil, fmt.Errorf("[error] failed to write input event to buffer: %v", err)
@@ -39,7 +43,7 @@ func appendEvent(event DeviceEvent) (buffer []byte, err error) {
 // Note that mice and touch pads do have buttons as well. Therefore, this function is used
 // by all currently available devices and resides in the main source file.
 func sendButtonEvent(deviceFD *os.File, key int, buttonState int) error {
-	if eventBuffer, err := appendEvent(DeviceEvent{
+	if eventBuffer, err := appendEvent(InputEvent{
 		Time:  syscall.Timeval{Sec: 0, Usec: 0},
 		Type:  keyEvent.UInt16(),
 		Code:  uint16(key),

@@ -1,5 +1,10 @@
 package uinput
 
+import (
+	"os"
+	"syscall"
+)
+
 // Original function taken from: https://github.com/tianon/debian-golang-pty/blob/master/ioctl.go
 func ioctl(deviceFD *os.File, cmd, ptr uintptr) error {
 	if _, _, errorCode := syscall.Syscall(syscall.SYS_IOCTL, deviceFD.Fd(), cmd, ptr); errorCode != 0 {

@@ -1,6 +1,5 @@
 package uinput
 
-
 // Absolute axes from input-event-codes.h
 const (
 	AbsX         = 0x00

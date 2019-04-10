@@ -1,30 +1,32 @@
 package uinput
 
-type deviceID struct{ busType, vendor, product, version uint16 }
+type deviceId struct{ busType, vendor, product, version uint16 }
 
-func NewDeviceID(deviceType DeviceType) deviceID {
+func NewDeviceId(deviceType DeviceType) deviceId {
 	switch deviceType {
 	case Keyboard:
-		return deviceID{
+		return deviceId{
 			busType: USB.Code(),
 			vendor:  0x4711,
 			product: 0x0815,
 			version: 1,
 		}
 	case Mouse:
-		return deviceID{
+		return deviceId{
 			busType: USB.Code(),
 			vendor:  0x4711,
 			product: 0x0816,
 			version: 1,
 		}
-	case TouchPad:
-		return deviceID{
+	case Touchpad:
+		return deviceId{
 			busType: USB.Code(),
 			vendor:  0x4711,
 			product: 0x0817,
 			version: 1,
 		}
+	default:
+		return deviceId{}
 	}
 }
 

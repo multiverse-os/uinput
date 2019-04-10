@@ -39,7 +39,7 @@ type deviceInfo struct {
 
 	bits map[string]*big.Int // bitfields keyed by group name, e.g. "EV" or "KEY"
 
-	deviceID
+	deviceId
 }
 
 // deviceID contains information identifying a device.
@@ -49,57 +49,57 @@ func newDeviceInfo() *deviceInfo {
 	return &deviceInfo{bits: make(map[string]*big.Int)}
 }
 
-func (di *deviceInfo) String() string {
-	return fmt.Sprintf("%s (%q %04x:%04x:%04x:%04x)",
-		di.path, di.name, di.busType, di.vendor, di.product, di.version)
+func (self *deviceInfo) String() string {
+	return fmt.Sprintf("device info: name[", self.name, "] located at path[", self.path, "]")
 }
 
 // isKeyboard returns true if this appears to be a keyboard device.
-func (di *deviceInfo) isKeyboard() bool {
+func (self *deviceInfo) isKeyboard() bool {
 	// Just check some arbitrary keys. The choice of 1, Q, and Space comes from
 	// client/cros/input_playback/input_playback.py in the Autotest repo.
-	return di.path != "" && di.hasBit(evGroup, uint16(EV_KEY)) &&
-		di.hasBit(keyGroup, uint16(KEY_1)) && di.hasBit(keyGroup, uint16(KEY_Q)) && di.hasBit(keyGroup, uint16(KEY_SPACE))
+	return self.path != "" && self.hasBit(evGroup, uint16(EV_KEY)) &&
+		self.hasBit(keyGroup, uint16(KEY_1)) && self.hasBit(keyGroup, uint16(KEY_Q)) && self.hasBit(keyGroup, uint16(KEY_SPACE))
 }
 
 // isTouchscreen returns true if this appears to be a touchscreen device.
-func (di *deviceInfo) isTouchscreen() bool {
+func (self *deviceInfo) isTouchscreen() bool {
 	// Touchscreen reports values in absolute coordinates, and should have the BTN_TOUCH bit set.
 	// Multitouch (bit ABS_MT_SLOT) is required to differentiate itself from some stylus devices.
 	// Some touchpad devices (like in Kevin) implement all the features needed for a touchscreen
 	// device, and luckily more. So, to differentiate a touchpad from a touchscreen, we filter out
 	// devices that implements features like DOUBLETAP, which should not be present on a touchscreen.
-	return di.path != "" &&
-		di.hasBit(evGroup, uint16(EV_KEY)) &&
-		di.hasBit(evGroup, uint16(EV_ABS)) &&
-		di.hasBit(keyGroup, uint16(BTN_TOUCH)) &&
-		!di.hasBit(keyGroup, uint16(BTN_TOOL_DOUBLETAP)) &&
-		di.hasBit(absGroup, uint16(ABS_MT_SLOT))
+	return self.path != "" &&
+		self.hasBit(evGroup, uint16(EV_KEY)) &&
+		self.hasBit(evGroup, uint16(EV_ABS)) &&
+		self.hasBit(keyGroup, uint16(BTN_TOUCH)) &&
+		!self.hasBit(keyGroup, uint16(BTN_TOOL_DOUBLETAP)) &&
+		self.hasBit(absGroup, uint16(ABS_MT_SLOT))
 }
 
-// hasBit returns true if the n-th bit in di.bits is set.
-func (di *deviceInfo) hasBit(grp string, n uint16) bool {
-	bits, ok := di.bits[grp]
+// hasBit returns true if the n-th bit in self.bits is set.
+func (self *deviceInfo) hasBit(grp string, n uint16) bool {
+	bits, ok := self.bits[grp]
 	return ok && bits.Bit(int(n)) != 0
 }
 
-// parseLine parses a single line from a devices file and incorporates it into di.
+// parseLine parses a single line from a devices file and incorporates it into
+// self.
 // See readDevices for information about the expected format.
-func (di *deviceInfo) parseLine(line, root string) error {
+func (self *deviceInfo) parseLine(line, root string) error {
 	if ms := infoRegexp.FindStringSubmatch(line); ms != nil {
 		id := func(s string) uint16 {
 			n, _ := strconv.ParseUint(s, 16, 16)
 			return uint16(n)
 		}
-		di.busType, di.vendor, di.product, di.version = id(ms[1]), id(ms[2]), id(ms[3]), id(ms[4])
+		self.busType, self.vendor, self.product, self.version = id(ms[1]), id(ms[2]), id(ms[3]), id(ms[4])
 	} else if ms = nameRegexp.FindStringSubmatch(line); ms != nil {
-		di.name = ms[1]
+		self.name = ms[1]
 	} else if ms = physRegexp.FindStringSubmatch(line); ms != nil {
-		di.phys = ms[1]
+		self.phys = ms[1]
 	} else if ms = sysfsRegexp.FindStringSubmatch(line); ms != nil {
 		var err error
 		dir := filepath.Join(sysfsPath, ms[1])
-		if di.path, err = getDevicePath(dir, root); err != nil {
+		if self.path, err = getDevicePath(dir, root); err != nil {
 			return fmt.Errorf("[error] failed to find device in '%v': %v", dir, err)
 		}
 	} else if ms = bitsRegexp.FindStringSubmatch(line); ms != nil {
@@ -118,7 +118,7 @@ func (di *deviceInfo) parseLine(line, root string) error {
 		if !ok {
 			return fmt.Errorf("[error] failed to parse bitfield %q", str)
 		}
-		di.bits[ms[1]] = bits
+		self.bits[ms[1]] = bits
 	}
 	return nil
 }

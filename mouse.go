@@ -18,6 +18,9 @@ package uinput
 //	stylusButton  = 0x14b
 //)
 
+var TwoButtonMouse = []ButtonType{LeftButton, RightButton}
+var ThreeButtonMouse = []ButtonType{LeftButton, MiddleButton, RightButton}
+
 type ButtonType int
 
 const (

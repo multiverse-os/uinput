@@ -5,17 +5,6 @@ import (
 	"syscall"
 )
 
-type PointerType int
-
-const (
-	MouseDevice PointerType = iota
-	TouchPadDevice
-)
-
-type VirtualPointer struct {
-	Type PointerType
-}
-
 type MoveDirection int
 
 const (
@@ -28,14 +17,14 @@ const (
 // NOTE: In input-event-codes.h in the kernel a variable is declared for
 // rel_x,rel_y and abs_x,abs_y but they are the same value, so we will
 // just use a single x and y to simplify things.
-type AxisType int
+type AxisType uint16
 
 const (
 	XAxis AxisType = iota
 	YAxis
 )
 
-func (self AxisType) EventCode() int {
+func (self AxisType) EventCode() uint16 {
 	switch self {
 	case XAxis:
 		return 0x00
@@ -46,11 +35,15 @@ func (self AxisType) EventCode() int {
 	}
 }
 
+func (self AxisType) Code() uint16 {
+	return self.EventCode()
+}
+
 type MoveType int
 
 const (
-	AbsoluteMove MoveType = iota
-	RelativeMove
+	Absolute MoveType = iota
+	Relative
 )
 
 type MoveEvent struct {
@@ -61,21 +54,16 @@ type MoveEvent struct {
 	NewPosition position
 }
 
-func (self MoveEvent) UInputEvent() (event UInputEvent) {
-	if self.Type == AbsoluteMove {
-		event.Type = absoluteEvent
-		if self.Axis == XAxis {
-			event.Code = absoluteX
-		} else if self.Axis == YAxis {
-			event.Code = absoluteY
-		}
-	} else if self.Type == RelativeMove {
-		event.Type = relativeEvent
-		if self.Axis == XAxis {
-			event.Code = relativeX
-		} else if self.Axis == YAxis {
-			event.Code = relativeY
-		}
+func (self MoveEvent) InputEvent() (event InputEvent) {
+	if self.Type == Absolute {
+		event.Type = absoluteEvent.UInt16()
+	} else if self.Type == Relative {
+		event.Type = relativeEvent.UInt16()
+	}
+	if self.Axis == XAxis {
+		event.Code = XAxis.Code()
+	} else if self.Axis == YAxis {
+		event.Code = YAxis.Code()
 	}
 	if self.Axis == XAxis {
 		event.Value = self.NewPosition.X
@@ -91,30 +79,30 @@ type position struct {
 }
 
 func (self position) Slice() (absolute [size]int32) {
-	absolute[absoluteX] = self.X
-	absolute[absoluteY] = self.Y
+	absolute[XAxis.Code()] = self.X
+	absolute[YAxis.Code()] = self.Y
 	return absolute
 }
 
 // TODO: Make a struct to hold this data and a func that outputs it in this way
-func (self position) AbsoluteMoveEvents() (events [2]UInputEvent) {
-	events[0].Type = absoluteEvent
-	events[0].Code = absoluteX
+func (self position) AbsoluteMoveEvents() (events [2]InputEvent) {
+	events[0].Type = absoluteEvent.UInt16()
+	events[0].Code = XAxis.Code()
 	events[0].Value = self.X
 
-	events[1].Type = absoluteEvent
-	events[1].Code = absoluteY
+	events[1].Type = absoluteEvent.UInt16()
+	events[1].Code = YAxis.Code()
 	events[1].Value = self.Y
 	return events
 }
 
-func (self position) RelativeMoveEvents() (events [2]UInputEvent) {
-	events[0].Type = relativeEvent
-	events[0].Code = relativeX
+func (self position) RelativeMoveEvents() (events [2]InputEvent) {
+	events[0].Type = relativeEvent.UInt16()
+	events[0].Code = XAxis.Code()
 	events[0].Value = self.X
 
-	events[1].Type = relativeEvent
-	events[1].Code = relativeY
+	events[1].Type = relativeEvent.UInt16()
+	events[1].Code = YAxis.Code()
 	events[1].Value = self.Y
 	return events
 }
@@ -139,33 +127,33 @@ func (self position) RelativeMoveEvents() (events [2]UInputEvent) {
 func (self Device) AbsoluteMoveTo(newPosition position) error {
 	uinputEvents := newPosition.AbsoluteMoveEvents()
 	for _, event := range uinputEvents {
-		if eventBuffer, err := writeToEventBuffer(event); err != nil {
+		if eventBuffer, err := appendEvent(event); err != nil {
 			return fmt.Errorf("[error] writing abs event failed: %v", err)
 			if _, err = self.FD.Write(eventBuffer); err != nil {
 				return fmt.Errorf("[error] failed to write abs event to device file: %v", err)
 			}
 		}
 	}
-	return syncEvents(self.FD)
+	return self.SyncEvents()
 }
 
 // TODO: Why do we need event code? Shouldnt it be fixed? And pixel seems wierd
 // name for distance to move relative
 
 func (self Device) RelativeMoveTo(eventCode uint16, pixels int32) error {
-	uinputEvent := UInputEvent{
+	inputEvent := InputEvent{
 		Time:  syscall.Timeval{Sec: 0, Usec: 0},
-		Type:  relativeEvent,
+		Type:  relativeEvent.Code(),
 		Code:  eventCode,
 		Value: pixels,
 	}
-	if eventBuffer, err := writeToEventBuffer(uinputEvent); err != nil {
+	if eventBuffer, err := appendEvent(inputEvent); err != nil {
 		return fmt.Errorf("[error] writing abs event failed: %v", err)
 		if _, err = self.FD.Write(eventBuffer); err != nil {
 			return fmt.Errorf("[error] failed to write rel event to device file: %v", err)
 		}
 	}
-	return syncEvents(self.FD)
+	return self.SyncEvents()
 }
 
 // TODO: Break these out into RelativeMoveLeft(pixels) to greatly simplify
@@ -174,13 +162,13 @@ func (self Device) RelativeMoveTo(eventCode uint16, pixels int32) error {
 func (self Device) Move(direction MoveDirection, pixels int32) error {
 	switch direction {
 	case Up:
-		return self.RelativeMoveTo(relativeY, -pixels)
+		return self.RelativeMoveTo(YAxis.Code(), -pixels)
 	case Down:
-		return self.RelativeMoveTo(relativeY, pixels)
+		return self.RelativeMoveTo(YAxis.Code(), pixels)
 	case Left:
-		return self.RelativeMoveTo(relativeX, -pixels)
+		return self.RelativeMoveTo(XAxis.Code(), -pixels)
 	case Right:
-		return self.RelativeMoveTo(relativeX, pixels)
+		return self.RelativeMoveTo(XAxis.Code(), pixels)
 	default:
 		return fmt.Errorf("[error] invalid direction")
 	}
@@ -197,15 +185,15 @@ func (self Device) Click(buttonType ButtonType) error {
 }
 
 func (self Device) PressButton(buttonType ButtonType) error {
-	if err := sendButtonEvent(self.FD, buttonType.EventCode(), buttonPressed); err != nil {
+	if err := sendButtonEvent(self.FD, buttonType.EventCode(), KeyPressed.Code()); err != nil {
 		return fmt.Errorf("[error] failed press the left mouse button: %v", err)
 	}
-	return syncEvents(self.FD)
+	return self.SyncEvents()
 }
 
 func (self Device) ReleaseButton(buttonType ButtonType) error {
-	if err := sendButtonEvent(self.FD, buttonType.EventCode(), buttonReleased); err != nil {
+	if err := sendButtonEvent(self.FD, buttonType.EventCode(), KeyReleased.Code()); err != nil {
 		return fmt.Errorf("[error] failed press the left mouse button: %v", err)
 	}
-	return syncEvents(self.FD)
+	return self.SyncEvents()
 }

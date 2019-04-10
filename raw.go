@@ -3,6 +3,7 @@ package uinput
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"os"
 	"syscall"
@@ -47,7 +48,7 @@ func (ew *RawEventWriter) Event(et EventType, ec EventCode, val int32) error {
 	case 8:
 		ev = &event64{tv, uint16(et), uint16(ec), val}
 	default:
-		return errors.Errorf("unexpected int size of %d byte(s)", intSize)
+		return fmt.Errorf("[errors] unexpected int size of %d byte(s)", intSize)
 	}
 
 	// Little-endian is appropriate regardless of the system's underlying endianness.
@@ -71,5 +72,5 @@ type event64 struct {
 // Sync writes a synchronization event delineating a packet of input data occurring at a single point in time.
 // It's shorthand for Event(t, EV_SYN, SYN_REPORT, 0).
 func (ew *RawEventWriter) Sync() error {
-	return ew.Event(EV_SYN, SYN_REPORT, 0)
+	return ew.Event(EV_SYN, SYN_REPORT.EventCode(), 0)
 }

@@ -48,3 +48,7 @@ func (self SyncType) Code() uint16 {
 func (self SyncType) Int32() int32 {
 	return int32(self.Code())
 }
+
+func (self SyncType) EventCode() EventCode {
+	return EventCode(self.Code())
+}
