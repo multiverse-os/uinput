@@ -9,8 +9,8 @@ type VirtualKeyboard struct {
 	KeyMap       map[EventCode]bool
 }
 
-func NewKeyboard(name string) (VirtualDevice, error) {
-	return Keyboard.New()
+func NewKeyboard(name string) VirtualDevice {
+	return Keyboard.New(name)
 }
 
 type ToggleKey int

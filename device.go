@@ -43,7 +43,7 @@ type Device struct {
 	Flat       [size]int32
 }
 
-func (self DeviceType) newDevice(name string) VirtualDevice {
+func (self DeviceType) New(name string) VirtualDevice {
 	var truncatedName [maxDeviceNameLength]byte
 	copy(truncatedName[:], []byte(name))
 	device := Device{
