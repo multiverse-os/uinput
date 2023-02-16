@@ -14,22 +14,76 @@ type DeviceType int
 const (
 	Keyboard DeviceType = iota
 	Mouse
-	Touchpad
+	Tablet // Uses absolute position typically
+	//Touchpad 
+	//Gamepad
+	// TODO: It should be very easy to leverage uinput for sensor input or 
+	//       custom hardware input prototyping
 )
 
+// TODO: If we only do TWO then we can consider just making it a boolean for 
+//       even better resource usage
+type InputType uint8
+
+// NOTE: This is the ultra-minimal version, the alternative style would be
+//       doing a type for every input type, from MoveTo, MoveUp, Button, WheelUp, 
+const (
+	// Button should cover gamepad, keyboard, and mouse button
+	Button InputType = iota // Well button could just be 0, 1 obvio
+	Position   // or MoveTo
+	// Position would be absolute, or relative movement to support mouse,
+	// touchpad, and gamepad. 
+)
+
+// NOTE: With this, we could just chain Input of press and unpress to do a tap,
+//       or absolute movement via 2 position changes
+//
+//       _A built in S-curve for holding down movement like with gamepad would_
+//       _obviously be ideal_
+//       
+//       
+
+
+// TODO: Value could be Press, Unpress, Tap, Distance to move mouse, but keep
+//       in mind if we are just going to just have Value = some thing we as
+//       developers have to know or check the code or docs, an enumerator
+//       would serve better
+type Input struct {
+	Type InputType
+	Value int
+}
+
+// TODO: Why did we get rid of error off of new?
 type VirtualDevice interface {
+	Create(string) (VirtualDevice, error)
+	// Destroy(string) error
+
 	//New(string) VirtualDevice
 	Connect() (VirtualDevice, error)
+	// TODO: Maybe a generic send input data that will be flexible enough
+	//       to work with at least for now mouse and keyboard
+	Input(Input.Type, int) (VirtualDevice, error)
+	// TODO: Think of any other functions that would be possible to use
+	//       on each device to help tie them together. And make it easier
+	//       to automate or prototype multiple devices.  
 	Disconnect() (VirtualDevice, error)
 }
 
 // TODO: Perhaps this should be a more generic geopmetric primitve then have
 // useful methods created for working with this type
+// NOTE: Do we have to store this? we could always just check if edge when
+//       doing __relative-movement__ because otherwise this is uncessary. 
+//       absolute could be based on percentages converted from like placement
+//       of pen on tablet and calculating. For example a keyboard use, never
+//       needs this data
 type ScreenSize struct {
 	Width  int32
 	Height int32
 }
 
+// TODO: Why not string and just ability to output as byte or marshal from bytes?
+//       Yeah I definitely want it to be a string and we jsut have the ability 
+//       to take in or output bytes as needed
 type Device struct {
 	Name       [80]byte
 	FD         *os.File
@@ -43,7 +97,15 @@ type Device struct {
 	Flat       [size]int32
 }
 
-func (self DeviceType) New(name string) VirtualDevice {
+type DeviceName string
+
+func (name DeviceName) Bytes() [80]byte {
+	var truncatedName [maxDeviceNameLength]byte
+	copy(truncatedName[:], []byte(name))
+	
+}
+
+func (self DeviceType) Create(name string) (VirtualDevice, error) {
 	var truncatedName [maxDeviceNameLength]byte
 	copy(truncatedName[:], []byte(name))
 	device := Device{

@@ -1,5 +1,10 @@
 package uinput
 
+// TODO: There are ways of doing this better using the standard libraries, and
+//       honestly there is no real reason to use the same naming as C; the only
+//       real reason would be to make it easier for people used to the C
+//       library; but they also program in C so we don't have to worry about 
+//       them, they are satisfied. 
 
 // Relative axes from input-event-codes.h#L354
 const (

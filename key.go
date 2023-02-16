@@ -1,11 +1,14 @@
 package uinput
 
+// TODO: Because of the new Input() function thats ultra generic on the device
+//       interface this all might be possible to get rid of
+
 // Button or Key
 type Key bool
 
 const (
-	Released Key = true
-	Pressed  Key = false
+	Pressed  Key = true
+	Released Key = false
 )
 
 const (
@@ -13,10 +16,12 @@ const (
 	KeyPressed  = Pressed
 	On          = Pressed
 	Off         = Released
+	Press       = Pressed
+	Release     = Released
 )
 
-func (self Key) EventCode() int {
-	switch self {
+func (key Key) EventCode() int {
+	switch key {
 	case Pressed:
 		return 1
 	default: //case Released:
@@ -24,12 +29,12 @@ func (self Key) EventCode() int {
 	}
 }
 
-func (self Key) Code() int {
-	return self.EventCode()
+func (key Key) Code() int {
+	return key.EventCode()
 }
 
-func (self Key) String() string {
-	switch self {
+func (key Key) String() string {
+	switch key {
 	case Pressed:
 		return "pressed"
 	default: //case Released:

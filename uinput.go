@@ -6,13 +6,14 @@ type DeviceProperty uint16
 // https://github.com/torvalds/linux/blob/master/include/uapi/linux/uinput.h
 const (
 	size        = 64
-	uinputEvent = 0x0101
+	uinputEvent = 257 // 0x0101
 	// TODO: Consolidate the forcebeedback logic so it easier interfaces can be
 	// created ontop of it
 	uinputForceFeedbackUpload = 1
 	uinputForceFeedbackErase  = 2
 )
 
+// NOTE: Should we even bother with these? 
 type SyncType uint16
 
 const (
@@ -30,19 +31,23 @@ const (
 	DroppedSync          = SYN_DROPPED
 )
 
-func (self SyncType) Code() uint16 {
-	switch self {
-	case SYN_REPORT:
-		return 0x0
-	case SYN_CONFIG:
-		return 0x1
-	case SYN_MT_REPORT:
-		return 0x2
-	case SYN_DROPPED:
-		return 0x3
-	default:
-		return 0
-	}
+func (st SyncType) Code() uint16 {
+	// NOTE:DEV
+	fmt.Printf("0x%X", st)
+	return fmt.Sprintf("0x%X", st)
+	// TODO: Could do fmt.Sprintf("0x%X", st) so this could all be 1 line
+	//switch st {
+	//case ReportSync:
+	//	return 0x0
+	//case ConfigSync:
+	//	return 0x1
+	//case MultiTouchReportSync:
+	//	return 0x2
+	//case DroppedSync:
+	//	return 0x3
+	//default:
+	//	return 0
+	//}
 }
 
 func (self SyncType) Int32() int32 {
