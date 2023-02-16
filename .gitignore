@@ -1,2 +1,8 @@
 .idea/
 *.iml
+
+go.sum
+
+cmd/parse-usb-ids/parse-usb-ids
+bin/*
+bin/
