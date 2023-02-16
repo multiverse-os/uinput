@@ -6,14 +6,20 @@ import (
 	"strings"
 	"text/template"
 
-	gousb "github.com/google/gousb"
-	usbid "github.com/multiverse-os/vinput/libs/uinput/usbid"
+	id "github.com/multiverse-os/uinput/usb-id"
+
+	usb "github.com/google/gousb"
 )
 
+// To me, the 1st one ("Id") is correct, as "Id" and "" are abbreviations of "identifier". The correct one is "Id". "ID" appears to be an acronym of two words, though there is only one word, "identifier".
+
+type Id struct {
+	Device usb.ID
+	Vendor usb.ID
+
 type USBDevice struct {
-	ID         gousb.ID
+	Id
 	Name       string
-	VendorID   gousb.ID
 	VendorName string
 }
 
@@ -22,29 +28,29 @@ type TemplateData struct {
 }
 
 func main() {
-	fmt.Println("Uinput Generate Script: USB Product Device IDs")
+	fmt.Println("uinput: parse system usb product device ids")
 	fmt.Println("===============================================================================")
-	fmt.Println("Uses the local usb.ids provided by the OS to generate a map of usable USB ID")
-	fmt.Println("information needed for using real vendor ID, product ID and names when creating")
+	fmt.Println("Uses the local usb.ids provided by the OS to generate a map of usable USB ")
+	fmt.Println("information needed for using real vendor , product Id and names when creating")
 	fmt.Println("virtual USB devices. This will allow creation of more realistic virtual devices\n")
-	vendors, classes, err := usbid.ParseIDs(strings.NewReader(usbid.IDListData))
+	vendors, classes, err := usbid.Parses(strings.NewReader(id.IdListData))
 	if err != nil {
 		fmt.Println("[fatal error] failed to parse ids:", err)
 		os.Exit(1)
 	} else {
-		fmt.Println("loaded [", len(vendors), "] vendors, and [", len(classes), "] classes...")
+		fmt.Printf("loaded [", len(vendors), "] vendors, and [", len(classes), "] classes...\n")
 	}
 	var Data TemplateData
 	var name string
-	for vendorID, vendor := range vendors {
-		for productID, product := range vendor.Product {
+	for vendorId, vendor := range vendors {
+		for productId, product := range vendor.Product {
 			name = strings.Replace(strings.Replace(strings.Split(product.Name, ",")[0], "\\", "", -1), "\"", "", -1)
 			if len(name) > 80 {
 				name = name[:80]
 			}
 			Data.Devices = append(Data.Devices, USBDevice{
-				ID:         productID,
-				VendorID:   vendorID,
+				Id:         productId,
+				VendorId:   vendorId,
 				VendorName: vendor.Name,
 				Name:       name,
 			})
@@ -72,15 +78,15 @@ func main() {
 var GoCodeTemplate = `package usb
 
 type USBDevice struct {
-	ID      	 string   
+	      	 string   
 	Name       string
-	VendorID   string
+	Vendor   string
 	VendorName string
 }
 
 func USBDevices() []USBDevice {
 	return []USBDevice{
-		{{range .Devices}}USBDevice{ID: "{{.ID}}", Name: "{{.Name}}", VendorID: "{{.VendorID}}", VendorName: "{{.VendorName}}"},
+		{{range .Devices}}USBDevice{: "{{.Id}}", Name: "{{.Name}}", VendorId: "{{.VendorId}}", VendorName: "{{.VendorName}}"},
 		{{end}}}
 }
 `
