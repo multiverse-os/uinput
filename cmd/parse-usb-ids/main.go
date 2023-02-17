@@ -16,6 +16,7 @@ import (
 type Id struct {
 	Device usb.ID
 	Vendor usb.ID
+}
 
 type USBDevice struct {
 	Id
@@ -33,9 +34,9 @@ func main() {
 	fmt.Println("Uses the local usb.ids provided by the OS to generate a map of usable USB ")
 	fmt.Println("information needed for using real vendor , product Id and names when creating")
 	fmt.Println("virtual USB devices. This will allow creation of more realistic virtual devices\n")
-	vendors, classes, err := usbid.Parses(strings.NewReader(id.IdListData))
+	vendors, classes, err := usb.Parses(strings.NewReader(id.IdListData))
 	if err != nil {
-		fmt.Println("[fatal error] failed to parse ids:", err)
+		fmt.Println("failed to parse ids:", err)
 		os.Exit(1)
 	} else {
 		fmt.Printf("loaded [", len(vendors), "] vendors, and [", len(classes), "] classes...\n")
@@ -57,9 +58,9 @@ func main() {
 		}
 	}
 
-	t, err := template.New("devices").Parse(GoCodeTemplate)
+	devicesTemplate, err := template.New("devices").Parse(GoCodeTemplate)
 	if err != nil {
-		fmt.Println("[fatal error] failed to initialize the template with data usb device list:", err)
+		fmt.Println("failed to initialize the template with data usb device list:", err)
 	}
 	fmt.Println("succsessfully created template, now executing it with [", len(Data.Devices), "] devices to render")
 
@@ -68,7 +69,7 @@ func main() {
 		fmt.Println("[fatal error] failed to open file for writing:", err)
 	}
 
-	err = t.Execute(sourceCodeFile, Data)
+	err = devicesTemplate.Execute(sourceCodeFile, Data)
 	if err != nil {
 		fmt.Println("[fatal error] failed to execute the template with the templateData:", err)
 	}

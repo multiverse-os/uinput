@@ -15,7 +15,7 @@ build:
 	mv cmd/parse-usb-ids/parse-usb-ids bin/
 
 install-deps:
-	sudo apt-get install libusb-dev
+	sudo apt-get install libusb-dev libusb-1.0-0-dev
 	go mod tidy
 
 clean:
