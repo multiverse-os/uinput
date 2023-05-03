@@ -57,7 +57,7 @@ type Input struct {
 
 // TODO: Why did we get rid of error off of new?
 type VirtualDevice interface {
-	Create(string) (VirtualDevice, error)
+	//Create(string) (VirtualDevice, error)
 	// Destroy(string) error
 
 	//New(string) VirtualDevice
@@ -110,12 +110,12 @@ func (name DeviceName) Bytes() [80]byte {
 	return truncatedName
 }
 
-func (self DeviceType) Create(name string) (VirtualDevice, error) {
+func (devType DeviceType) Create(name string) (VirtualDevice, error) {
 	var truncatedName [maxDeviceNameLength]byte
 	copy(truncatedName[:], []byte(name))
 	device := Device{
 		Name:       truncatedName,
-		Type:       self,
+		Type:       devType,
 		EffectsMax: 0,
 	}
 	var err error
