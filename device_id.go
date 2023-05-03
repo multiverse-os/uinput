@@ -1,5 +1,9 @@
 package uinput
 
+import (
+	"fmt"
+)
+
 type deviceId struct{ busType, vendor, product, version uint16 }
 
 func NewDeviceId(deviceType DeviceType) deviceId {
@@ -30,20 +34,20 @@ func NewDeviceId(deviceType DeviceType) deviceId {
 	}
 }
 
-
 // TODO: Same with the BusType, we should make some simple vendor and product
-//       so its super easy to convert output from `lspci -nn` instead of 
+//       so its super easy to convert output from `lspci -nn` instead of
 //       forcing the user to need to know how to do the hex for the value
 
 // NOTE: Maybe this should be based off device like device.VendorID(1014) => 0x000
 func VendorId(id uint16) string {
-	return fmt.Printf("%X", id)
+	return fmt.Sprintf("%v", id)
 }
 
-// NOTE: I prefer Id honestly because its short for Identity or Index not 
-//       something with two words I.. D...
+// NOTE: I prefer Id honestly because its short for Identity or Index not
+//
+//	something with two words I.. D...
 func ProductId(id uint16) string {
-	return fmt.Printf("%X", id)
+	return fmt.Sprintf("%v", id)
 }
 
 // TODO: Use usb-ids and some additional code to abstract pulling real

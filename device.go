@@ -15,24 +15,26 @@ const (
 	Keyboard DeviceType = iota
 	Mouse
 	Tablet // Uses absolute position typically
-	//Touchpad 
-	//Gamepad
-	// TODO: It should be very easy to leverage uinput for sensor input or 
+	Touchpad
+	Gamepad
+	// TODO: It should be very easy to leverage uinput for sensor input or
 	//       custom hardware input prototyping
 )
 
-// TODO: If we only do TWO then we can consider just making it a boolean for 
-//       even better resource usage
+// TODO: If we only do TWO then we can consider just making it a boolean for
+//
+//	even better resource usage
 type InputType uint8
 
 // NOTE: This is the ultra-minimal version, the alternative style would be
-//       doing a type for every input type, from MoveTo, MoveUp, Button, WheelUp, 
+//
+//	doing a type for every input type, from MoveTo, MoveUp, Button, WheelUp,
 const (
 	// Button should cover gamepad, keyboard, and mouse button
-	Button InputType = iota // Well button could just be 0, 1 obvio
-	Position   // or MoveTo
+	Button   InputType = iota // Well button could just be 0, 1 obvio
+	Position                  // or MoveTo
 	// Position would be absolute, or relative movement to support mouse,
-	// touchpad, and gamepad. 
+	// touchpad, and gamepad.
 )
 
 // NOTE: With this, we could just chain Input of press and unpress to do a tap,
@@ -40,16 +42,16 @@ const (
 //
 //       _A built in S-curve for holding down movement like with gamepad would_
 //       _obviously be ideal_
-//       
-//       
-
+//
+//
 
 // TODO: Value could be Press, Unpress, Tap, Distance to move mouse, but keep
-//       in mind if we are just going to just have Value = some thing we as
-//       developers have to know or check the code or docs, an enumerator
-//       would serve better
+//
+//	in mind if we are just going to just have Value = some thing we as
+//	developers have to know or check the code or docs, an enumerator
+//	would serve better
 type Input struct {
-	Type InputType
+	Type  InputType
 	Value int
 }
 
@@ -62,28 +64,31 @@ type VirtualDevice interface {
 	Connect() (VirtualDevice, error)
 	// TODO: Maybe a generic send input data that will be flexible enough
 	//       to work with at least for now mouse and keyboard
-	Input(Input.Type, int) (VirtualDevice, error)
+	//Input(InputType, int) (VirtualDevice, error)
 	// TODO: Think of any other functions that would be possible to use
 	//       on each device to help tie them together. And make it easier
-	//       to automate or prototype multiple devices.  
+	//       to automate or prototype multiple devices.
 	Disconnect() (VirtualDevice, error)
 }
 
 // TODO: Perhaps this should be a more generic geopmetric primitve then have
 // useful methods created for working with this type
 // NOTE: Do we have to store this? we could always just check if edge when
-//       doing __relative-movement__ because otherwise this is uncessary. 
-//       absolute could be based on percentages converted from like placement
-//       of pen on tablet and calculating. For example a keyboard use, never
-//       needs this data
+//
+//	doing __relative-movement__ because otherwise this is uncessary.
+//	absolute could be based on percentages converted from like placement
+//	of pen on tablet and calculating. For example a keyboard use, never
+//	needs this data
 type ScreenSize struct {
 	Width  int32
 	Height int32
 }
 
-// TODO: Why not string and just ability to output as byte or marshal from bytes?
-//       Yeah I definitely want it to be a string and we jsut have the ability 
-//       to take in or output bytes as needed
+// TODO: Why not string and just ability to output as byte or marshal from
+// bytes?
+//
+//	Yeah, I definitely want it to be a string and we just have the ability
+//	to take in or output bytes as needed
 type Device struct {
 	Name       [80]byte
 	FD         *os.File
@@ -102,7 +107,7 @@ type DeviceName string
 func (name DeviceName) Bytes() [80]byte {
 	var truncatedName [maxDeviceNameLength]byte
 	copy(truncatedName[:], []byte(name))
-	
+	return truncatedName
 }
 
 func (self DeviceType) Create(name string) (VirtualDevice, error) {
@@ -121,52 +126,52 @@ func (self DeviceType) Create(name string) (VirtualDevice, error) {
 	// NOTE: This sleep allows time for userspace to find the new device and
 	// initialize it for our use, then we can continue configuring the device.
 	time.Sleep(time.Millisecond * 200)
-	return device
+	return device, err
 }
 
-func (self Device) ScreenSize(width, height int32) Device {
+func (dev Device) ScreenSize(width, height int32) VirtualDevice {
 	// TODO: Validate the values
-	self.screenSize = ScreenSize{
+	dev.screenSize = ScreenSize{
 		Width:  width,
 		Height: height,
 	}
-	return self
+	return dev
 }
 
-func (self Device) Connect() (VirtualDevice, error) {
-	switch self.Type {
+func (dev Device) Connect() (VirtualDevice, error) {
+	switch dev.Type {
 	case Keyboard:
-		self.RegisterDefaultKeymap()
-		self.Id = NewDeviceId(Keyboard)
+		dev.RegisterDefaultKeymap()
+		dev.Id = NewDeviceId(Keyboard)
 	case Mouse:
-		self.RegisterTwoPointerButtons()
-		self.RegisterAxis(Relative)
-		self.Id = NewDeviceId(Mouse)
+		dev.RegisterTwoPointerButtons()
+		dev.RegisterAxis(Relative)
+		dev.Id = NewDeviceId(Mouse)
 	case Touchpad:
-		self.RegisterTwoPointerButtons()
-		self.RegisterAxis(Absolute)
-		self.Id = NewDeviceId(Touchpad)
+		dev.RegisterTwoPointerButtons()
+		dev.RegisterAxis(Absolute)
+		dev.Id = NewDeviceId(Touchpad)
 		//Min: min.Slice(),
 		//Max: max.Slice(),
 	default:
 		return nil, fmt.Errorf("[error] invalid device could not connect")
 	}
-	if err := ioctl(self.FD, EventBit.Code(), uintptr(0)); err != nil {
-		self.FD.Close()
+	if err := ioctl(dev.FD, EventBit.Code(), uintptr(0)); err != nil {
+		dev.FD.Close()
 		return nil, fmt.Errorf("[error] invalid file handle returned from ioctl: %v", err)
 	}
-	return self, nil
+	return dev, nil
 }
 
-func (self Device) Disconnect() (VirtualDevice, error) {
-	if err := ioctl(self.FD, RemoveDevice.Code(), uintptr(0)); err != nil {
+func (dev Device) Disconnect() (VirtualDevice, error) {
+	if err := ioctl(dev.FD, RemoveDevice.Code(), uintptr(0)); err != nil {
 		return nil, fmt.Errorf("[error] failed to remove virtual device: %v", err)
 	}
-	if err := self.FD.Close(); err != nil {
+	if err := dev.FD.Close(); err != nil {
 		return nil, fmt.Errorf("[error] failed to close device fd: %v", err)
 	}
-	self.FD = &os.File{}
-	return self, nil
+	dev.FD = &os.File{}
+	return dev, nil
 }
 
 func OpenFileDescriptor(uiPath string) (deviceFD *os.File, err error) {
